@@ -10,4 +10,5 @@
 
 3) Third Terminal (State Machine)
 
-``` ros2 launch kimm_multi_floor_gazebo navigation_sample.py ```
+In scripts folder
+``` python3 navigator_sample.py ```
