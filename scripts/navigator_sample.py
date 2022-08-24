@@ -61,7 +61,7 @@ map_file_path_stage2 = 'maps/stage2.yaml'
 
 stage1_map = os.path.join(pkg_share, map_file_path_stage1)
 stage2_map = os.path.join(pkg_share, map_file_path_stage2)
-print (stage1_map)
+
 initpose_publisher_ = InitialPosePublisher() # Initial Pose Publisher for Nav2
 
 initPose = PoseWithCovarianceStamped()
