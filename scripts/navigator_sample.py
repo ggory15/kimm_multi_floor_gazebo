@@ -57,10 +57,8 @@ pkg_share = FindPackageShare(package=package_name).find(package_name)
 # Launch the ROS 2 Navigation Stack
 navigator = BasicNavigator()
 map_file_path_stage1 = 'maps/stage1.yaml'
-map_file_path_stage2 = 'maps/stage2.yaml'
 
 stage1_map = os.path.join(pkg_share, map_file_path_stage1)
-stage2_map = os.path.join(pkg_share, map_file_path_stage2)
 
 ## if you want to set initial pose, you can use topic publisher,
 # initpose_publisher_ = InitialPosePublisher() # Initial Pose Publisher for Nav2
@@ -154,17 +152,12 @@ def waypoints(goals):
 
 def main():
     stage1_goals = ["stage1_mid_point", "stage1_goal"]
-    stage2_goals = ["stage2_mid_point", "stage2_goal"]
     stage1_goals_coordinates = [[0.5, 0.5, 0., 0., 0., 1.], [2., 1.0, 0., 0., 1., 0.]]
-    stage2_goals_coordinates = [[-0.5, 5.5, 0., 0., 0., -1.], [-2., 4., 0., 0., 0., 1., 0.]]
     # Every Coord is repreasented as x_pos, y_pos, x_quat, y_quat, z_quat, w_quat 
 
     i = 0
     have_task = 0
-    package1_picked = 0
-    package1_delivered = 0
 
-    to_elevator = 0
     done = False 
 
     stage = 1
@@ -184,48 +177,11 @@ def main():
             if isDone:
                 have_task = 1
                 current_goal = stage1_goals[1]
-                moveTo(stage1_goals_coordinates[1], current_goal)
-                stage = 1
-            else:
-                print("[Robot]   Trying again")
+                isDone2= moveTo(stage1_goals_coordinates[1], current_goal)
 
-        elif have_task == 1:
-            delete_model_client = DeleteEntityAsync()
-            response = delete_model_client.send_request("turtlebot3_waffle") 
-            # delete model for next stage
-            from subprocess import call
-            call(["ros2", "launch", "kimm_multi_floor_gazebo", "gz_respawner_stage2.py"])
-            print ("[Robot] Move to Next Stage")
-
-            if initialize_flag is False:
-                navigator.clearAllCostmaps()
-                navigator.changeMap(stage2_map)
-
-                initial_pose = PoseStamped()
-                initial_pose.header.frame_id = 'map'
-                initial_pose.header.stamp = navigator.get_clock().now().to_msg()
-                initial_pose.pose.position.x = 2.0
-                initial_pose.pose.position.y = 6.0
-                initial_pose.pose.position.z = 0.
-                initial_pose.pose.orientation.x = 0.0
-                initial_pose.pose.orientation.y = 0.0
-                initial_pose.pose.orientation.z = 1.0
-                initial_pose.pose.orientation.w = 0.0
-                navigator.setInitialPose(initial_pose)
-
-                initialize_flag = True
-
-            current_goal = stage2_goals[0]
-            isDone = moveTo(stage2_goals_coordinates[0], current_goal)
-            stage = 2
-            if isDone:
-                current_goal = stage2_goals[1]
-                moveTo(stage2_goals_coordinates[1], current_goal)
-                print('[Robot]   I have a package, need to go to deliver it...')
-                have_task = 2
-        elif have_task == 2:
-            print('[Robot]   Everythins is Okay for me')
-            done = True
+            if isDone2:
+                print ("[Robot]   Evrything is Done")
+                done = isDone2
 
     ## The other is follow waypoint method.
     delete_model_client = DeleteEntityAsync()
@@ -238,7 +194,7 @@ def main():
     navigator.clearAllCostmaps()
     navigator.changeMap(stage1_map)
 
-
+    time.sleep(3)
     initial_pose = PoseStamped()
     initial_pose.header.frame_id = 'map'
     initial_pose.header.stamp = navigator.get_clock().now().to_msg()
@@ -272,49 +228,6 @@ def main():
         exit(1)
     elif result == TaskResult.FAILED:
         print('Inspection failed! Returning to start...') 
-
-    delete_model_client = DeleteEntityAsync()
-    response = delete_model_client.send_request("turtlebot3_waffle") 
-    # delete model for next stage
-    from subprocess import call
-    call(["ros2", "launch", "kimm_multi_floor_gazebo", "gz_respawner_stage2.py"])
-    print ("[Robot] Move to Next Stage")
-
-    navigator.clearAllCostmaps()
-    navigator.changeMap(stage2_map)
-
-    initial_pose = PoseStamped()
-    initial_pose.header.frame_id = 'map'
-    initial_pose.header.stamp = navigator.get_clock().now().to_msg()
-    initial_pose.pose.position.x = 2.0
-    initial_pose.pose.position.y = 6.0
-    initial_pose.pose.position.z = 0.
-    initial_pose.pose.orientation.x = 0.0
-    initial_pose.pose.orientation.y = 0.0
-    initial_pose.pose.orientation.z = 1.0
-    initial_pose.pose.orientation.w = 0.0
-    navigator.setInitialPose(initial_pose)
-
-    stage2_waypoints = waypoints(stage2_goals_coordinates)
-    navigator.followWaypoints(stage2_waypoints)
- 
-    ## stage2
-    i = 0
-    while not navigator.isTaskComplete():
-        feedback = navigator.getFeedback()
-        i = i + 1
-        if feedback and i%5 == 0:
-            print('Executing current waypoint: ' + stage2_goals[feedback.current_waypoint])
-
-    result = navigator.getResult()
-    if result == TaskResult.SUCCEEDED:
-        print('Inspection is complete! Returning to start...')
-    elif result == TaskResult.CANCELED:
-        print('Inspection was canceled. Returning to start...')
-        exit(1)
-    elif result == TaskResult.FAILED:
-        print('Inspection failed! Returning to start...') 
-
 
     # Shut down the ROS 2 Navigation Stack
     navigator.lifecycleShutdown()
